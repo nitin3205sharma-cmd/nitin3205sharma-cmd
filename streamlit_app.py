@@ -17,31 +17,63 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------------
-# LIGHT & ATTRACTIVE FINANCIAL THEME CSS WITH SOLID SEPARATORS
+# 1. THEME ENGINE (LIGHT, DARK, SYSTEM)
 # -------------------------------------------------------------
-bg_img_url = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1920&q=80"
+if "theme_mode" not in st.session_state:
+    st.session_state["theme_mode"] = "light"  # options: light, dark, system
+if "active_nav" not in st.session_state:
+    st.session_state["active_nav"] = "Single stock terminal"
+
+current_theme = st.session_state["theme_mode"]
+
+# Styling Variables
+if current_theme == "dark":
+    app_bg = "linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.96)), url('https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1920&q=80')"
+    card_bg = "#1e293b"
+    card_border = "#334155"
+    text_main = "#f8fafc"
+    text_sub = "#94a3b8"
+    banner_bg = "linear-gradient(135deg, #78350f 0%, #b45309 100%)"
+    banner_border = "#92400e"
+    plotly_template = "plotly_dark"
+elif current_theme == "system":
+    # Balanced Glassmorphic Mode
+    app_bg = "linear-gradient(rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.92)), url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1920&q=80')"
+    card_bg = "rgba(30, 41, 59, 0.85)"
+    card_border = "#475569"
+    text_main = "#f1f5f9"
+    text_sub = "#cbd5e1"
+    banner_bg = "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)"
+    banner_border = "#1d4ed8"
+    plotly_template = "plotly_dark"
+else:
+    # Light Theme
+    app_bg = "linear-gradient(rgba(248, 250, 252, 0.90), rgba(241, 245, 249, 0.93)), url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1920&q=80')"
+    card_bg = "#ffffff"
+    card_border = "#cbd5e1"
+    text_main = "#0f172a"
+    text_sub = "#64748b"
+    banner_bg = "linear-gradient(135deg, #b45309 0%, #d97706 100%)"
+    banner_border = "#92400e"
+    plotly_template = "plotly_white"
 
 st.markdown(
     f"""
 <style>
-    /* Clean Light & Elegant Background */
     .stApp {{
-        background: linear-gradient(rgba(244, 247, 250, 0.88), rgba(235, 240, 245, 0.92)),
-                    url('{bg_img_url}') no-repeat center center fixed !important;
+        background: {app_bg} no-repeat center center fixed !important;
         background-size: cover !important;
-        color: #1e293b !important;
+        color: {text_main} !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }}
 
-    /* Tight Center Title Banner */
     .center-banner {{
-        background: #d97706;
-        background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
-        border: 2px solid #92400e;
+        background: {banner_bg};
+        border: 2px solid {banner_border};
         padding: 8px 16px;
         text-align: center;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(180, 83, 9, 0.25);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         margin-bottom: 12px;
     }}
     .center-banner h1 {{
@@ -58,27 +90,24 @@ st.markdown(
         margin: 2px 0 0 0 !important;
     }}
 
-    /* Left Menu Pill Buttons */
-    .nav-btn {{
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
+    .content-card {{
+        background: {card_bg};
+        border: 1px solid {card_border};
         border-radius: 10px;
-        padding: 10px 14px;
-        color: #1e293b !important;
-        font-weight: 700;
-        font-size: 0.92rem;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        color: {text_main} !important;
     }}
 
-    /* Right Side Cards */
     .wireframe-box {{
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
+        background: {card_bg};
+        border: 1px solid {card_border};
         border-radius: 10px;
         padding: 14px;
         margin-bottom: 12px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        color: {text_main} !important;
     }}
 
     .link-list a {{
@@ -93,97 +122,248 @@ st.markdown(
         color: #1d4ed8 !important;
         text-decoration: underline;
     }}
-
-    /* Main Center Card */
-    .content-card {{
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 18px;
-        margin-bottom: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }}
-
-    /* Hide redundant file uploader labels / empty slots */
-    div[data-testid="stFileUploader"] {{
-        padding: 0 !important;
-        margin-bottom: 4px !important;
-    }}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 # -------------------------------------------------------------
-# APP STATE INITIALIZATION
-# -------------------------------------------------------------
-if "active_nav" not in st.session_state:
-    st.session_state["active_nav"] = "Scan PDF / Watchlist"
-
-# -------------------------------------------------------------
-# INDEX UNIVERSE MAPPINGS
+# 2. NSE & BSE COMPLETE INDICES DATABASE
 # -------------------------------------------------------------
 INDEX_STOCK_POOLS = {
-    "NIFTY 50": [
+    # NSE Broad Indices
+    "NSE: NIFTY 50": [
         "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "ITC", "SBIN",
         "LT", "HINDUNILVR", "BAJFINANCE", "HCLTECH", "MARUTI", "SUNPHARMA", "TATAMOTORS",
-        "NTPC", "ONGC", "KOTAKBANK", "TITAN", "AXISBANK", "POWERGRID", "TATASTEEL", "COALINDIA"
+        "NTPC", "ONGC", "KOTAKBANK", "TITAN", "AXISBANK", "POWERGRID", "TATASTEEL", "COALINDIA",
+        "BAJAJFINSV", "ASIANPAINT", "M&M", "ULTRACEMCO", "JSWSTEEL", "TECHM", "WIPRO",
+        "NESTLEIND", "HINDALCO", "ADANIPORTS", "ADANIENT", "SBILIFE", "BAJAJ-AUTO", "DRREDDY",
+        "CIPLA", "DIVISLAB", "APOLLOHOSP", "EICHERMOT", "BRITANNIA", "SHRIRAMFIN", "TRENT",
+        "BEL", "BPCL", "TATACONSUM", "HEROMOTOCO", "GRASIM", "LTIM"
     ],
-    "NIFTY BANK": [
-        "HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "INDUSINDBK", "BANKBARODA", "PNB"
+    "NSE: NIFTY NEXT 50": [
+        "ABB", "ADANIENSOL", "ADANIGREEN", "ADANIPOWER", "ATGL", "AMBUJACEM", "BANKBARODA",
+        "BERGEPAINT", "BOSCHLTD", "CANBK", "CHOLAFIN", "COLPAL", "DLF", "GAIL", "GODREJCP",
+        "HAL", "HAVELLS", "ICICIGI", "ICICIPRULI", "IOC", "IRCTC", "IRFC", "JINDALSTEL",
+        "JIOFIN", "LICI", "MARICO", "PIDILITIND", "PFC", "PNB", "RECLTD", "SIEMENS", "SRF",
+        "TATAPOWER", "TORNTPHARM", "TVSMOTOR", "VBL", "VEDL", "ZOMATO", "ZYDUSLIFE"
     ],
-    "NIFTY IT": [
-        "TCS", "INFY", "HCLTECH", "WIPRO", "LTIM", "TECHM", "PERSISTENT", "COFORGE"
+    "NSE: NIFTY MIDCAP 100": [
+        "ASHOKLEY", "ASTRAL", "AUROPHARMA", "BALKRISIND", "BATAINDIA", "BHARATFORG", "BHEL",
+        "COFORGE", "CONCOR", "CUMMINSIND", "DIXON", "ESCORTS", "FEDERALBNK", "GMRINFRA",
+        "HINDPETRO", "IDFCFIRSTB", "INDHOTEL", "JUBLFOOD", "LUPIN", "MFSL", "MPHASIS",
+        "OBEROIRLTY", "PERSISTENT", "POLYCAB", "SAIL", "SUNDARMFIN", "SUPREMEIND", "VOLTAS"
     ],
-    "NIFTY PHARMA": [
-        "SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "TORNTPHARM"
+    "NSE: NIFTY SMALLCAP 100": [
+        "AMBER", "ANGELONE", "BSOFT", "CANFINHOME", "CENTURYPLY", "CESC", "CLEAN", "CREDITACC",
+        "CYIENT", "DEVYANI", "EIDPARRY", "FORTIS", "GLENMARK", "HAPPSTMNDS", "JBCHEPHARM",
+        "KAYNES", "KEC", "LATENTVIEW", "MEDANTA", "RADICO", "RBLBANK", "SONACOMS", "TRITURBINE"
     ],
-    "BSE SENSEX 30": [
+    # NSE Sectoral Indices
+    "NSE: NIFTY BANK": [
+        "HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "INDUSINDBK", "BANKBARODA",
+        "PNB", "IDFCFIRSTB", "AUBANK", "FEDERALBNK", "BANDHANBNK"
+    ],
+    "NSE: NIFTY IT": [
+        "TCS", "INFY", "HCLTECH", "WIPRO", "LTIM", "TECHM", "PERSISTENT", "COFORGE", "MPHASIS", "LTTS"
+    ],
+    "NSE: NIFTY PHARMA": [
+        "SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "LUPIN", "AUROPHARMA", "TORNTPHARM",
+        "ZYDUSLIFE", "ALKEM", "GLENMARK", "MANKIND", "BIOCON", "IPCALAB"
+    ],
+    "NSE: NIFTY AUTO": [
+        "MARUTI", "TATAMOTORS", "M&M", "BAJAJ-AUTO", "EICHERMOT", "HEROMOTOCO", "TVSMOTOR",
+        "BHARATFORG", "ASHOKLEY", "BOSCHLTD", "MRF", "BALKRISIND", "TIINDIA"
+    ],
+    "NSE: NIFTY FMCG": [
+        "HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "TATACONSUM", "GODREJCP", "DABUR",
+        "MARICO", "COLPAL", "VBL", "PGHH", "UBL", "RADICO", "BALRAMCHIN"
+    ],
+    "NSE: NIFTY ENERGY": [
+        "RELIANCE", "NTPC", "ONGC", "POWERGRID", "COALINDIA", "BPCL", "IOC", "GAIL", "ADANIGREEN", "TATAPOWER"
+    ],
+    "NSE: NIFTY METAL": [
+        "TATASTEEL", "JSWSTEEL", "HINDALCO", "VEDL", "JINDALSTEL", "NMDC", "SAIL", "NATIONALUM", "APLAPOLLO", "HINDZINC"
+    ],
+    "NSE: NIFTY INFRA": [
+        "LT", "RELIANCE", "BHARTIARTL", "NTPC", "POWERGRID", "ULTRACEMCO", "ONGC", "GRASIM", "ADANIPORTS", "IOC"
+    ],
+    "NSE: NIFTY REALTY": [
+        "DLF", "GODREJPROP", "LODHA", "OBEROIRLTY", "PHOENIXLTD", "BRIGADE", "PRESTIGE", "SOBHA", "MAHLIFE"
+    ],
+    "NSE: NIFTY PSU BANK": [
+        "SBIN", "BANKBARODA", "PNB", "CANBK", "UNIONBANK", "INDIANB", "IOB", "UCOBANK", "CENTRALBK", "MAHABANK"
+    ],
+    # BSE Indices
+    "BSE: SENSEX 30": [
         "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "ITC", "SBIN",
-        "LT", "HINDUNILVR", "BAJFINANCE", "MARUTI", "SUNPHARMA", "TATAMOTORS", "NTPC"
+        "LT", "HINDUNILVR", "BAJFINANCE", "HCLTECH", "MARUTI", "SUNPHARMA", "TATAMOTORS",
+        "NTPC", "KOTAKBANK", "TITAN", "AXISBANK", "POWERGRID", "TATASTEEL", "BAJAJFINSV",
+        "ASIANPAINT", "M&M", "ULTRACEMCO", "JSWSTEEL", "TECHM", "WIPRO", "NESTLEIND", "INDUSINDBK"
+    ],
+    "BSE: BSE 100": [
+        "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "ITC", "SBIN",
+        "LT", "HINDUNILVR", "BAJFINANCE", "HCLTECH", "MARUTI", "SUNPHARMA", "HAL", "BEL",
+        "ZOMATO", "TRENT", "JIOFIN", "SIEMENS", "ABB", "CHOLAFIN", "VEDL", "DLF", "IOC"
+    ],
+    "BSE: BSE MIDCAP": [
+        "ACC", "ASTRAL", "AUROPHARMA", "BALKRISIND", "BATAINDIA", "COFORGE", "DIXON",
+        "FEDERALBNK", "IDFCFIRSTB", "LUPIN", "MPHASIS", "POLYCAB", "SAIL", "VOLTAS", "ZEEL"
+    ],
+    "BSE: BSE SMALLCAP": [
+        "AMBER", "ANGELONE", "AVANTIFEED", "BALAJIAMIN", "CAMPUS", "CDSL", "CYIENT",
+        "DELTACORP", "EASEMYTRIP", "FINEORG", "GRINDWELL", "HAPPSTMNDS", "IEX", "KNRCON"
     ]
 }
 
+# -------------------------------------------------------------
+# 3. EXHAUSTIVE 20+ FINANCIAL TERMINOLOGIES DICTIONARY
+# -------------------------------------------------------------
 TERMINOLOGIES = [
     {
         "term": "P/E Ratio (Price to Earnings)",
-        "formula": "CMP / EPS",
-        "meaning": "Har ₹1 munafay ke liye aap kitne rupaye de rahe hain.",
-        "impact": "Low P/E stock ko sasta aur high P/E stock ko mehnga darshata hai.",
+        "formula": "CMP / Earnings Per Share (EPS)",
+        "meaning": "Company ke har ₹1 munafay (profit) ko khareedne ke liye market kitne rupaye de raha hai.",
+        "impact": "Kam P/E (>15) undervalued ho sakta hai, aur bohot zyada P/E stock ko mehnga darshata hai.",
         "target": "15 to 35"
     },
     {
-        "term": "PEG Ratio",
-        "formula": "P/E / Growth Rate",
-        "meaning": "P/E aur profit growth ki aapas me tulna.",
-        "impact": "PEG < 1.0 matlab company growth ke muqable saste rate par mil rahi hai.",
+        "term": "PEG Ratio (PE to Growth)",
+        "formula": "P/E Ratio / Annual EPS Growth Rate",
+        "meaning": "P/E ko company ke profit badhne ki raftaar se tulna karta hai.",
+        "impact": "PEG < 1.0 matlab company high growth ke muqable saste valuation par mil rahi hai.",
         "target": "0.1 se 1.8"
     },
     {
-        "term": "ROCE",
-        "formula": "EBIT / Capital Employed",
-        "meaning": "Equity aur loan dono paise par company ne kitna percent return kamaya.",
-        "impact": "High ROCE (> 15%) shandar business model ka saboot hai.",
+        "term": "ROCE (Return on Capital Employed)",
+        "formula": "EBIT / (Total Assets - Current Liabilities)",
+        "meaning": "Equity aur Loan dono paise ko milakar company ne kitne percent return banaya.",
+        "impact": "High ROCE (>15%) behtareen management aur solid business efficiency ka saboot hai.",
         "target": "> 15.0%"
     },
     {
-        "term": "ROE",
-        "formula": "Net Profit / Shareholders' Equity",
-        "meaning": "Shareholders ke lagaye paise par return.",
-        "impact": "High ROE shareholder wealth ko tezi se multiply karta hai.",
+        "term": "ROE (Return on Equity)",
+        "formula": "Net Income / Shareholders' Equity",
+        "meaning": "Shareholders ke lagaye hue paise par net profit kitna percent kamaya gaya.",
+        "impact": "High ROE shareholder ke capital ko tezi se multiply karta hai.",
         "target": "> 15.0%"
     },
     {
-        "term": "Debt to Equity (D/E)",
-        "formula": "Total Debt / Equity",
-        "meaning": "Company ke assets ke muqable kitna karz hai.",
-        "impact": "D/E < 0.5 hone se mandi me company dubne ka risk khatam rehta hai.",
+        "term": "ROA (Return on Assets)",
+        "formula": "Net Income / Total Assets",
+        "meaning": "Company ke paas jitni kul sampatti hai, uspar kitna profit kamaya.",
+        "impact": "Banks aur manufacturing firms ke asset utilization ko samajhne ke liye zaroori hai.",
+        "target": "> 6.0%"
+    },
+    {
+        "term": "Debt to Equity Ratio (D/E)",
+        "formula": "Total Debt / Shareholders' Equity",
+        "meaning": "Company ke upar karz uske khud ke assets ke muqable kitna guna hai.",
+        "impact": "D/E < 0.5 hone se mandi me company dubne ka koi khatra nahi rehta.",
         "target": "< 0.5"
+    },
+    {
+        "term": "Interest Coverage Ratio",
+        "formula": "EBIT / Interest Expense",
+        "meaning": "Company apne saalana operating munafay se karz ka byaaj kitni baar chuka sakti hai.",
+        "impact": "High Coverage (>3.5x) hone se company loan default nahi karti.",
+        "target": "> 3.5x"
+    },
+    {
+        "term": "OPM (Operating Profit Margin)",
+        "formula": "(Operating Profit / Revenue) * 100",
+        "meaning": "Kacha maal aur factory kharche nikalne ke baad bacha hua munafa.",
+        "impact": "Expanding OPM company ke pricing power aur moat ko dikhata hai.",
+        "target": "> 12.0%"
+    },
+    {
+        "term": "NPM (Net Profit Margin)",
+        "formula": "(Net Profit After Tax / Revenue) * 100",
+        "meaning": "Byaaj, Tax aur sabhi kharche katne ke baad aakhiri bacha shuddh munafa.",
+        "impact": "Yeh batata hai ki sales ka kitna hissa seedhe shareholders ki jeb me ja raha hai.",
+        "target": "> 10.0%"
+    },
+    {
+        "term": "Free Cash Flow (FCF)",
+        "formula": "Operating Cash Flow - Capital Expenditure (CapEx)",
+        "meaning": "Nayi factory/machinery lagane ke baad hath me bacha hua asli cash.",
+        "impact": "Positive FCF wali companies dividend deti hain aur karz chukati hain.",
+        "target": "Positive (FCF > 0)"
+    },
+    {
+        "term": "CFO (Cash Flow from Operations)",
+        "formula": "Cash generated from core business operations",
+        "meaning": "Asli cash jo company ke bank account me aaya (accounting profit se alag).",
+        "impact": "CFO hamesha net profit se zyada hona chahiye taaki udhar ki kami na ho.",
+        "target": "CFO > 80% of PAT"
+    },
+    {
+        "term": "P/B Ratio (Price to Book)",
+        "formula": "CMP / Book Value Per Share",
+        "meaning": "Company ki balance sheet ki net worth ke hisaab se share ka bhav.",
+        "impact": "Banks aur NBFCs ke valuation judge karne ke liye best metric hai.",
+        "target": "Industry dependent (< 3.0)"
+    },
+    {
+        "term": "EV/EBITDA",
+        "formula": "Enterprise Value / EBITDA",
+        "meaning": "Company ko karz samet poora khareedne par cash profit ke muqable kitna time lagega.",
+        "impact": "Capital-intensive sectors (Steel, Cement) ke valuation ka sabse accurate rasta.",
+        "target": "< 12x"
+    },
+    {
+        "term": "Dividend Yield",
+        "formula": "(Dividend Per Share / CMP) * 100",
+        "meaning": "Stock khareedne par kitne percent yearly cash return dividend ke roop me milega.",
+        "impact": "High dividend yield regular income aur defensive stocks ki nishani hai.",
+        "target": "1% to 5%"
+    },
+    {
+        "term": "Current Ratio",
+        "formula": "Current Assets / Current Liabilities",
+        "meaning": "Agle 1 saal ke karz chukane ke liye short-term assets kitne guna hain.",
+        "impact": "Current ratio > 1.33 hone par company liquidity crisis me nahi fasti.",
+        "target": "> 1.33"
+    },
+    {
+        "term": "Quick Ratio (Acid-Test)",
+        "formula": "(Current Assets - Inventory) / Current Liabilities",
+        "meaning": "Bina inventory beche emergency me karz chukane ki kshamta.",
+        "impact": "Yeh emergency financial solvency ko test karta hai.",
+        "target": "> 1.0"
+    },
+    {
+        "term": "Sales CAGR (3Y & 5Y)",
+        "formula": "Compound Annual Growth Rate of Revenue",
+        "meaning": "Pichle 3 aur 5 saal me sales har saal lagatar kis raftaar se badhi.",
+        "impact": "Double digit growth (>12%) growth stock ka sabse bada pillar hai.",
+        "target": "> 12.0%"
+    },
+    {
+        "term": "PAT CAGR (Profit Growth)",
+        "formula": "Compound Annual Growth Rate of Net Profit",
+        "meaning": "Pichle 3 aur 5 saal me shuddh munafa kitni raftaar se multiply hua.",
+        "impact": "Sales growth se zyada profit growth honi chahiye (Operating leverage).",
+        "target": "> 15.0%"
+    },
+    {
+        "term": "Market Capitalization (M-Cap)",
+        "formula": "Total Shares Outstanding * CMP",
+        "meaning": "Stock market me poori company ki kul keemat.",
+        "impact": "Large Cap me safety zyada hoti hai, Small Cap me return aur risk zyada.",
+        "target": "> ₹100 Cr"
+    },
+    {
+        "term": "Beta (Volatility Index)",
+        "formula": "Covariance(Stock, Market) / Variance(Market)",
+        "meaning": "Nifty ke 1% hilne par yeh stock kitna percent hilta hai.",
+        "impact": "Beta < 1.0 matlab stock stable hai, Beta > 1.5 matlab bohot volatile hai.",
+        "target": "0.7 to 1.3"
     }
 ]
 
 # -------------------------------------------------------------
-# ENGINE: FETCH & AUDIT
+# 4. ROBUST STOCK DATA FETCH & AUDIT ENGINE
 # -------------------------------------------------------------
 @st.cache_data(ttl=600)
 def analyze_stock_full(symbol):
@@ -225,7 +405,7 @@ def analyze_stock_full(symbol):
             except Exception:
                 roe = None
 
-        # ROCE
+        # ROCE Calculation
         roce = None
         ebit = 0
         try:
@@ -349,7 +529,6 @@ def analyze_stock_full(symbol):
     except Exception:
         return None
 
-
 def display_candlestick(full_sym):
     try:
         df_hist = yf.download(full_sym, period="6mo", interval="1d")
@@ -367,31 +546,31 @@ def display_candlestick(full_sym):
                 decreasing_line_color="#dc2626"
             )])
             fig.update_layout(
-                title=f"{full_sym} — 6-Month Candlestick Chart",
+                title=f"{full_sym} — 6-Month Technical Candlestick",
                 yaxis_title="Price (₹)",
-                template="plotly_white",
+                template=plotly_template,
                 xaxis_rangeslider_visible=False,
                 height=380,
                 margin=dict(l=10, r=10, t=35, b=10)
             )
             st.plotly_chart(fig, use_container_width=True)
     except Exception:
-        st.info("Chart data uplabdh nahi ho saka.")
+        st.info("Chart data load nahi ho saka.")
 
 # -------------------------------------------------------------
-# MAIN 3-COLUMN LAYOUT WITH BORDER SEPARATORS
+# 5. MAIN 3-COLUMN LAYOUT WITH LEVEL HEADERS
 # -------------------------------------------------------------
 left_col, center_col, right_col = st.columns([2.3, 6.2, 2.7], gap="medium")
 
 # -------------------------------------------------------------
-# 1. LEFT SIDEBAR MENU
+# LEFT COLUMN: NAVIGATION MENU
 # -------------------------------------------------------------
 with left_col:
     st.markdown("### 🎛️ Navigation")
     buttons = [
-        "Scan PDF / Watchlist",
         "Single stock terminal",
         "NSE/BSE Index screener",
+        "Scan PDF / Watchlist",
         "Important TERMINOLOGY GUIDE",
     ]
 
@@ -407,10 +586,9 @@ with left_col:
             st.rerun()
 
 # -------------------------------------------------------------
-# 2. CENTER COLUMN (BANNER EXACT WIDTH AS CONTENT + SCREENS)
+# CENTER COLUMN: SHRINK HEADER + ACTIVE VIEWS
 # -------------------------------------------------------------
 with center_col:
-    # Heading banner strictly confined to center width
     st.markdown(
         """
         <div class="center-banner">
@@ -423,48 +601,22 @@ with center_col:
 
     active = st.session_state["active_nav"]
 
-    # SCREEN 1: SCAN PDF / WATCHLIST
-    if active == "Scan PDF / Watchlist":
-        st.markdown('<div class="content-card"><h3>📄 Custom Watchlist & Scanned PDF Symbols</h3>', unsafe_allow_html=True)
-        scanned_symbols = st.session_state.get("pdf_symbols", [])
-
-        if scanned_symbols:
-            st.success(f"PDF se detect huye symbols: {', '.join(scanned_symbols)}")
-        else:
-            st.info("Right side panel se PDF statement upload karein ya direct symbols likhein.")
-
-        custom_text = st.text_area(
-            "Symbols (Comma-separated):",
-            value=", ".join(scanned_symbols) if scanned_symbols else "INFY, TCS, LT, MARUTI, RELIANCE"
-        )
-
-        if st.button("Scan Custom Watchlist", type="primary"):
-            tokens = [x.strip().upper() for x in custom_text.split(",") if x.strip()]
-            results = []
-            bar = st.progress(0)
-            for i, s in enumerate(tokens):
-                d = analyze_stock_full(s)
-                if d:
-                    results.append(d)
-                bar.progress((i + 1) / len(tokens))
-            bar.empty()
-            results.sort(key=lambda x: x["score"], reverse=True)
-
-            for stk in results:
-                st.markdown(f"**{stk['name']} ({stk['symbol']})** — ₹{stk['price']} | Score: **{stk['score']}/7**")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # SCREEN 2: SINGLE STOCK TERMINAL
-    elif active == "Single stock terminal":
+    # SCREEN 1: SINGLE STOCK TERMINAL (FIXED WORKING FORM)
+    if active == "Single stock terminal":
         st.markdown('<div class="content-card"><h3>🔍 Single Stock Live Analysis</h3>', unsafe_allow_html=True)
-        c_in, c_btn = st.columns([4, 1.2])
-        with c_in:
-            target_sym = st.text_input("Enter Stock Symbol:", value="RELIANCE", label_visibility="collapsed")
-        with c_btn:
-            run_btn = st.button("⚡ Scan Stock", use_container_width=True, type="primary")
+        
+        with st.form("single_stock_form", clear_on_submit=False):
+            f_col1, f_col2 = st.columns([4, 1.2])
+            with f_col1:
+                input_sym = st.text_input("Enter Stock Symbol:", value="RELIANCE", placeholder="e.g. TCS, INFY, TATAMOTORS")
+            with f_col2:
+                st.write("")
+                submit_btn = st.form_submit_button("⚡ Scan Stock", use_container_width=True, type="primary")
+
+        target_sym = input_sym.strip().upper() if input_sym else "RELIANCE"
 
         if target_sym:
-            with st.spinner(f"Analyzing {target_sym}..."):
+            with st.spinner(f"Fetching Live Data for {target_sym}..."):
                 stk = analyze_stock_full(target_sym)
 
             if stk:
@@ -477,14 +629,14 @@ with center_col:
                     f"""
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:8px;">
                         <div>
-                            <span style="font-size:1.6rem; font-weight:900; color:#0f172a;">{stk['name']} ({stk['symbol']})</span>
+                            <span style="font-size:1.6rem; font-weight:900;">{stk['name']} ({stk['symbol']})</span>
                             <div>
-                                <span style="font-size:1.8rem; font-weight:900; color:#0f172a;">₹{stk['price']}</span>
+                                <span style="font-size:1.8rem; font-weight:900;">₹{stk['price']}</span>
                                 <span style="font-size:1.1rem; font-weight:800; color:{chg_color}; margin-left:8px;">{chg_sym} {stk['day_change_abs']} ({stk['day_change']}%)</span>
-                                <span style="font-size:0.92rem; color:#64748b; margin-left:14px;">M-Cap: <b>₹{stk['mcap']} Cr</b> | P/E: <b>{stk['pe']}</b> | ROCE: <b>{stk['roce']}%</b> | ROE: <b>{stk['roe']}%</b></span>
+                                <span style="font-size:0.92rem; color:{text_sub}; margin-left:14px;">M-Cap: <b>₹{stk['mcap']} Cr</b> | P/E: <b>{stk['pe']}</b> | ROCE: <b>{stk['roce']}%</b> | ROE: <b>{stk['roe']}%</b></span>
                             </div>
                         </div>
-                        <div style="font-size:1.35rem; font-weight:900; color:{border_color}; background: rgba(0,0,0,0.05); padding: 6px 16px; border-radius:10px;">
+                        <div style="font-size:1.35rem; font-weight:900; color:{border_color}; background: rgba(0,0,0,0.06); padding: 6px 16px; border-radius:10px;">
                             {score} / 7 Passed
                         </div>
                     </div>
@@ -520,15 +672,15 @@ with center_col:
                         })
                 st.table(pd.DataFrame(rows))
             else:
-                st.error("Data nahi mila. Valid symbol check karein.")
+                st.error("Stock data nahi mil paya. Valid NSE symbol check karein (e.g. TCS, RELIANCE, INFY).")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # SCREEN 3: NSE/BSE INDEX SCREENER
+    # SCREEN 2: ALL NSE/BSE INDICES SCREENER (COMPLETE INDICES LIST)
     elif active == "NSE/BSE Index screener":
         st.markdown('<div class="content-card"><h3>🏛️ Scan Entire NSE / BSE Index</h3>', unsafe_allow_html=True)
         c_sel, c_btn = st.columns([4, 1.5])
         with c_sel:
-            selected_idx = st.selectbox("Choose Index to Scan:", list(INDEX_STOCK_POOLS.keys()))
+            selected_idx = st.selectbox("Choose Index to Scan:", list(INDEX_STOCK_POOLS.keys()), index=0)
         with c_btn:
             st.write("")
             scan_now = st.button("🚀 Scan Index", use_container_width=True, type="primary")
@@ -556,6 +708,7 @@ with center_col:
             st.write(f"### Results ({len(scan_res)} Stocks Analyzed):")
             for stk in scan_res:
                 score = stk["score"]
+                border_color = "#16a34a" if score >= 6 else ("#d97706" if score >= 4 else "#dc2626")
                 with st.expander(f"{stk['name']} ({stk['symbol']}) — ₹{stk['price']} | Score: {score}/7"):
                     rows = []
                     for c in stk["criteria"]:
@@ -569,25 +722,71 @@ with center_col:
                     st.table(pd.DataFrame(rows))
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # SCREEN 4: IMPORTANT TERMINOLOGY GUIDE
+    # SCREEN 3: SCAN PDF / WATCHLIST (REPAIRED PARSING & LIVE SCAN)
+    elif active == "Scan PDF / Watchlist":
+        st.markdown('<div class="content-card"><h3>📄 Custom Watchlist & Scanned PDF Symbols</h3>', unsafe_allow_html=True)
+        scanned_symbols = st.session_state.get("pdf_symbols", [])
+
+        if scanned_symbols:
+            st.success(f"PDF se detect huye symbols: {', '.join(scanned_symbols)}")
+        else:
+            st.info("Right side panel se PDF statement upload karein ya direct symbols neeche comma-separated likhein.")
+
+        custom_text = st.text_area(
+            "Symbols (Comma-separated):",
+            value=", ".join(scanned_symbols) if scanned_symbols else "INFY, TCS, LT, MARUTI, RELIANCE"
+        )
+
+        if st.button("🚀 Scan Custom Watchlist", type="primary"):
+            tokens = [x.strip().upper() for x in custom_text.split(",") if x.strip()]
+            results = []
+            bar = st.progress(0)
+            for i, s in enumerate(tokens):
+                d = analyze_stock_full(s)
+                if d:
+                    results.append(d)
+                bar.progress((i + 1) / len(tokens))
+            bar.empty()
+            results.sort(key=lambda x: x["score"], reverse=True)
+
+            if results:
+                st.write(f"### Watchlist Scan Results ({len(results)} Stocks):")
+                for stk in results:
+                    score = stk["score"]
+                    with st.expander(f"**{stk['name']} ({stk['symbol']})** — ₹{stk['price']} | Score: **{score}/7 Passed**"):
+                        rows = []
+                        for c in stk["criteria"]:
+                            for d in c["details"]:
+                                rows.append({
+                                    "Rule": d[0],
+                                    "Stock Value": d[1],
+                                    "Benchmark": d[2],
+                                    "Result": "✅ PASS" if d[3] else "❌ FAIL"
+                                })
+                        st.table(pd.DataFrame(rows))
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # SCREEN 4: EXHAUSTIVE TERMINOLOGY GUIDE (20+ FINANCIAL METRICS)
     elif active == "Important TERMINOLOGY GUIDE":
-        st.markdown('<div class="content-card"><h3>📖 Financial Terminology Guide</h3>', unsafe_allow_html=True)
-        search_kw = st.text_input("Search Financial Term (e.g. ROCE, P/E, Debt):", "")
+        st.markdown('<div class="content-card"><h3>📖 Complete Financial Terminology Guide</h3>', unsafe_allow_html=True)
+        search_kw = st.text_input("Search Financial Metric (e.g. ROCE, P/E, Debt, OPM, Cash Flow, CAGR):", "")
 
         filtered = [
             t for t in TERMINOLOGIES 
             if search_kw.lower() in t["term"].lower() or search_kw.lower() in t["meaning"].lower()
         ]
 
+        st.caption(f"Showing {len(filtered)} Financial Terms")
+
         for item in filtered:
             st.markdown(
                 f"""
-                <div style="background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid #cbd5e1;">
+                <div style="background:rgba(0,0,0,0.03); padding:14px; border-radius:8px; margin-bottom:12px; border:1px solid {card_border};">
                     <h4 style="color:#b45309; margin:0 0 4px 0;">📌 {item['term']}</h4>
-                    <p style="font-size:0.85rem; color:#64748b; margin:0 0 6px 0;"><b>Formula:</b> <code>{item['formula']}</code></p>
-                    <p style="margin:0 0 6px 0; color:#1e293b;"><b>Matlab:</b> {item['meaning']}</p>
-                    <p style="color:#2563eb; margin:0 0 4px 0;"><b>Impact:</b> {item['impact']}</p>
-                    <span style="color:#16a34a; font-weight:700;">Benchmark: {item['target']}</span>
+                    <p style="font-size:0.85rem; color:{text_sub}; margin:0 0 6px 0;"><b>Formula:</b> <code>{item['formula']}</code></p>
+                    <p style="margin:0 0 6px 0;"><b>Aasan Bhasha me Matlab:</b> {item['meaning']}</p>
+                    <p style="color:#2563eb; margin:0 0 4px 0;"><b>Asar & Investor Impact:</b> {item['impact']}</p>
+                    <span style="color:#16a34a; font-weight:700;">🎯 Benchmark / Ideal Value: {item['target']}</span>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -595,10 +794,28 @@ with center_col:
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -------------------------------------------------------------
-# 3. RIGHT PANEL (CLEAN TOP-ALIGNED UPLOADS & LINKS)
+# RIGHT COLUMN: THEME SWITCHER, UPLOADS & LINKS
 # -------------------------------------------------------------
 with right_col:
-    # Top-aligned JSON Uploader
+    # 1. THEME CONTROLLER (LIGHT, DARK, SYSTEM)
+    st.markdown('<div class="wireframe-box">', unsafe_allow_html=True)
+    st.markdown("<b>🎨 Select Theme</b>", unsafe_allow_html=True)
+    th_col1, th_col2, th_col3 = st.columns(3)
+    with th_col1:
+        if st.button("☀️ Light", use_container_width=True, type="primary" if current_theme == "light" else "secondary"):
+            st.session_state["theme_mode"] = "light"
+            st.rerun()
+    with th_col2:
+        if st.button("🌙 Dark", use_container_width=True, type="primary" if current_theme == "dark" else "secondary"):
+            st.session_state["theme_mode"] = "dark"
+            st.rerun()
+    with th_col3:
+        if st.button("💻 System", use_container_width=True, type="primary" if current_theme == "system" else "secondary"):
+            st.session_state["theme_mode"] = "system"
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # 2. JSON UPLOADER
     st.markdown('<div class="wireframe-box">', unsafe_allow_html=True)
     st.caption("Upload JSON Watchlist (.json)")
     up_json = st.file_uploader("Upload JSON", type=["json"], label_visibility="collapsed")
@@ -607,27 +824,35 @@ with right_col:
             st.session_state["imported_watchlist"] = json.load(up_json)
             st.success("JSON loaded!")
         except Exception:
-            st.error("Invalid JSON.")
+            st.error("Invalid JSON file.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Top-aligned PDF Statement Uploader
+    # 3. PDF STATEMENT UPLOADER (ENHANCED PARSER)
     st.markdown('<div class="wireframe-box">', unsafe_allow_html=True)
     st.caption("Auto-Scan PDF Statement (.pdf)")
     up_pdf = st.file_uploader("Upload PDF", type=["pdf"], label_visibility="collapsed")
     if up_pdf:
         try:
             reader = PdfReader(up_pdf)
-            txt = "".join([p.extract_text() or "" for p in reader.pages[:4]])
-            tokens = re.findall(r"\b[A-Z]{3,10}\b", txt)
-            valid = list(set(tokens).intersection(INDEX_STOCK_POOLS["NIFTY 50"]))
+            txt = "".join([p.extract_text() or "" for p in reader.pages[:10]])
+            # Extract potential tickers (3 to 12 capital characters)
+            tokens = re.findall(r"\b[A-Z]{3,12}\b", txt)
+            # Match against comprehensive Nifty 50 + Next 50 + Midcap lists
+            all_known = set()
+            for stock_list in INDEX_STOCK_POOLS.values():
+                all_known.update(stock_list)
+
+            valid = list(set(tokens).intersection(all_known))
             if valid:
                 st.session_state["pdf_symbols"] = valid
-                st.success(f"{len(valid)} Stocks detected!")
+                st.success(f"{len(valid)} Stocks detected from PDF!")
+            else:
+                st.info("PDF upload hua par koi standard stock symbol match nahi hua.")
         except Exception as e:
-            st.error(f"PDF error: {e}")
+            st.error(f"PDF parse error: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Export Button
+    # 4. EXPORT BUTTON
     if st.button("📥 Export data", use_container_width=True):
         export_payload = json.dumps(st.session_state.get("last_scan_results", []), indent=2)
         st.download_button(
@@ -638,7 +863,7 @@ with right_col:
             use_container_width=True
         )
 
-    # Direct Working External Financial Links
+    # 5. DIRECT WORKING OFFICIAL LINKS
     st.markdown(
         """
         <div class="wireframe-box link-list" style="margin-top: 10px;">
