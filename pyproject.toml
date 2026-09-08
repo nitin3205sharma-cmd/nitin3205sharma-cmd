@@ -1,0 +1,7 @@
+[project]
+dependencies = [
+    "streamlit>=1.63.0",  # Update to latest
+    "pandas>=2.0.0",
+    "requests>=2.31.0",
+    # other dependencies...
+]
